@@ -1,0 +1,453 @@
+options
+{
+  static = true;
+}
+
+PARSER_BEGIN(Computin)
+
+package RussoComputin;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.StringReader;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+
+public class Computin
+{
+  private int lineCount = 0;
+  private int tokenCount = 0;
+
+  public static void main(String[] args) throws ParseException, IOException {
+    if (args.length == 0) {
+      // Se nenhum arquivo for passado, abre a interface gráfica
+      SwingUtilities.invokeLater(new Runnable() {
+        @Override
+        public void run() {
+          new ComputinGUI().setVisible(true);
+        }
+      });
+    } else {
+      // Lê o arquivo e executa o parser
+      String filePath = args[0];
+      String input = new String(Files.readAllBytes(Paths.get(filePath)));
+
+      Computin parser = new Computin(new java.io.StringReader(input));
+      try {
+        parser.start();
+        System.out.println("\nComunismo gostou disso camarada!");
+        System.out.println("Linhas de código: " + parser.getLineCount());
+        System.out.println("Tokens reconhecidos: " + parser.getTokenCount());
+      } catch (ParseException e) {
+        System.err.println("\nErro de análise comunista: " + geraMensagemErro(e.currentToken, e.expectedTokenSequences, e.tokenImage));
+      } catch (TokenMgrError e) {
+        System.err.println("\nErro léxico: " + e.getMessage());
+      }
+    }
+  }
+
+  // Função que calcula a distância de Levenshtein entre duas strings
+  private static int calculaSimilaridade(String s1, String s2) {
+    int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+    for (int i = 0; i <= s1.length(); i++) {
+      for (int j = 0; j <= s2.length(); j++) {
+        if (i == 0) {
+          dp[i][j] = j;
+        } else if (j == 0) {
+          dp[i][j] = i;
+        } else {
+          dp[i][j] = Math.min(dp[i - 1][j - 1] 
+                        + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1),
+                        Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1));
+        }
+      }
+    }
+    return dp[s1.length()][s2.length()];
+  }
+
+  // Encontra o token mais similar ao token inesperado
+  private static String encontraTokenSimilar(String tokenInesperado, String[] tokenImage) {
+    String tokenMaisSimilar = null;
+    int menorDistancia = Integer.MAX_VALUE;
+    for (String token : tokenImage) {
+      int distancia = calculaSimilaridade(tokenInesperado, token);
+      if (distancia < menorDistancia) {
+        menorDistancia = distancia;
+        tokenMaisSimilar = token;
+      }
+    }
+    return tokenMaisSimilar;
+  }
+
+  public static String geraMensagemErro(Token tokenAtual, int[][] expectedTokenSequences, String[] tokenImage) {
+    StringBuilder erro = new StringBuilder();
+    erro.append("\nErro comunismo funcionou na linha ")
+        .append(tokenAtual.beginLine)
+        .append(", coluna ")
+        .append(tokenAtual.beginColumn)
+        .append(".\n");
+
+    erro.append("Foice inesperado: \"").append(tokenAtual.image).append("\"\n");
+
+    // Verifica se o token esperado é um símbolo importante ausente e gera mensagens apropriadas
+    boolean faltaPontoVirgula = false;
+    boolean faltaAbreParenteses = false;
+    boolean faltaFechaParenteses = false;
+    boolean faltaAbreChave = false;
+    boolean faltaFechaChave = false;
+
+    // Itera sobre os tokens esperados para verificar ausências comuns
+    for (int[] seq : expectedTokenSequences) {
+        for (int tokenIndex : seq) {
+            String esperado = tokenImage[tokenIndex];
+            if (esperado.equals("\";\"")) faltaPontoVirgula = true;
+            if (esperado.equals("\"(\"")) faltaAbreParenteses = true;
+            if (esperado.equals("\")\"")) faltaFechaParenteses = true;
+            if (esperado.equals("\"{\"")) faltaAbreChave = true;
+            if (esperado.equals("\"}\"")) faltaFechaChave = true;
+        }
+    }
+
+    // Adiciona mensagens específicas para tokens faltantes
+    if (faltaPontoVirgula) {
+        erro.append("Erro de partilha de bens: Comunismo esperava compartilhar um ';' entre os camaradas.\n");
+    }
+    if (faltaAbreParenteses) {
+        erro.append("Erro de partilha de bens: Comunismo esperava de você comunhar um '(' camarada.\n");
+    }
+    if (faltaFechaParenteses) {
+        erro.append("Erro de partilha de bens: Comunismo esperava de você comunhar um ')' camarada.\n");
+    }
+    if (faltaAbreChave) {
+        erro.append("Erro de partilha de bens: Comunismo esperava de você comunhar um '{' camarada.\n");
+    }
+    if (faltaFechaChave) {
+        erro.append("Erro de partilha de bens: Comunismo esperava de você comunhar um '}' camarada.\n");
+    }
+
+    if(!faltaPontoVirgula
+        && !faltaAbreParenteses
+        && !faltaFechaParenteses
+        && !faltaAbreChave
+        && !faltaFechaChave)
+    {	  
+        // Sugestão do token mais próximo
+        String tokenSugerido = encontraTokenSimilar(tokenAtual.image, tokenImage);
+        if (tokenSugerido != null) {
+          erro.append("Martelo esperado: ").append(tokenSugerido).append("\n");
+        }
+
+        erro.append(tokenAtual.image).append("\n");
+        erro.append(" ".repeat(Math.max(0, tokenAtual.beginColumn - 1)) + "^\n");
+    }
+    return erro.toString();
+  }
+
+  public int getLineCount() {
+    return lineCount;
+  }
+
+  public int getTokenCount() {
+    return tokenCount;
+  }
+}
+
+// Interface gráfica
+class ComputinGUI extends JFrame {
+  private JTextPane codeArea;
+  private JTextArea outputArea;
+  private JButton parseButton;
+
+  public ComputinGUI() {
+    setTitle("RussoComputin - Interface de Interação");
+    setSize(800, 600);
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+    // Área de código com números de linha
+    codeArea = new JTextPane();
+    JScrollPane codeScrollPane = new JScrollPane(codeArea);
+    codeScrollPane.setRowHeaderView(new LineNumberView(codeArea));
+
+    outputArea = new JTextArea();
+    parseButton = new JButton("Analisar");
+
+    // Atualiza os números de linha em tempo real
+    codeArea.getDocument().addDocumentListener(new DocumentListener() {
+      @Override
+      public void insertUpdate(DocumentEvent e) {
+        updateLineNumbers();
+      }
+
+      @Override
+      public void removeUpdate(DocumentEvent e) {
+        updateLineNumbers();
+      }
+
+      @Override
+      public void changedUpdate(DocumentEvent e) {
+        updateLineNumbers();
+      }
+
+      private void updateLineNumbers() {
+        codeScrollPane.getRowHeader().repaint();
+      }
+    });
+
+    parseButton.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        String input = codeArea.getText();
+        Computin parser = new Computin(new StringReader(input));
+        try {
+          parser.start();
+          outputArea.setText("Comunismo gostou disso camarada!\n");
+          outputArea.append("Linhas de código: " + parser.getLineCount() + "\n");
+          outputArea.append("Tokens reconhecidos: " + parser.getTokenCount() + "\n");
+        } catch (ParseException ex) {
+          outputArea.setText("Erro de análise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
+        } catch (TokenMgrError ex) {
+          outputArea.setText("Erro léxico: " + ex.getMessage());
+        }
+      }
+    });
+
+    JPanel panel = new JPanel(new BorderLayout());
+    panel.add(codeScrollPane, BorderLayout.CENTER);
+    panel.add(parseButton, BorderLayout.SOUTH);
+
+    JPanel outputPanel = new JPanel(new BorderLayout());
+    outputPanel.add(new JScrollPane(outputArea), BorderLayout.CENTER);
+
+    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, panel, outputPanel);
+    splitPane.setResizeWeight(0.7);
+
+    add(splitPane);
+  }
+
+  // Classe para exibir números de linha
+  private class LineNumberView extends JComponent {
+    private final JTextPane textPane;
+
+    public LineNumberView(JTextPane textPane) {
+      this.textPane = textPane;
+      setPreferredSize(new Dimension(30, 0));
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+      super.paintComponent(g);
+      int lineHeight = textPane.getFontMetrics(textPane.getFont()).getHeight();
+      int startOffset = textPane.getDocument().getDefaultRootElement().getElement(0).getStartOffset();
+      int endOffset = textPane.getDocument().getDefaultRootElement().getElement(textPane.getDocument().getDefaultRootElement().getElementCount() - 1).getEndOffset();
+      int startLine = textPane.getDocument().getDefaultRootElement().getElementIndex(startOffset);
+      int endLine = textPane.getDocument().getDefaultRootElement().getElementIndex(endOffset);
+
+      for (int i = startLine; i <= endLine; i++) {
+        String lineNumber = String.valueOf(i + 1);
+        int x = getWidth() - g.getFontMetrics().stringWidth(lineNumber) - 5;
+        int y = (i - startLine) * lineHeight + lineHeight - 5;
+        g.drawString(lineNumber, x, y);
+      }
+    }
+  }
+}
+
+PARSER_END(Computin)
+
+SKIP :
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+}
+
+TOKEN : /* PALAVRAS RESERVADAS */
+{
+  < MAIN : "suka_blyat" >				 // main principal
+| < TIPOINT : "marikhuana" >			// tipo int
+| < TIPOFLOAT : "missil" >			 	// tipo float
+| < TIPOSTRING : "stroka" > 			// tipo string
+| < IF : "kommunizm" > 					// if
+| < ELSE : "ne_rabotayet" > 			// else
+| < WHILE : "mezhdu_serpom_i_molotom" > // while
+| < FOR : "tsar_bomba" >	 			// for loop
+}
+
+TOKEN : /* OPERADORES */
+{
+  < MAIS  		 : "dobavleniye" > // Operador de adição
+| < MENOS 		 : "vychitaniye" > // Operador de subtração
+| < MULT  		 : "umnozheniye" > // Operador de multiplicação
+| < DIVIS 		 : "razdeleniye" > // Operador de divisão
+| < IGUAL 		 : "ravnyy" > // Operador de atribuição
+| < NOT   		 : "net" >			 // Operador de negação
+| < MAIOR 		 : "bolshe" >		 // condicional maior
+| < MENOR 		 : "neznachitelnyy" > // condicional menor
+| < AND   		 : "zatem" >			 // operador e
+| < OR 	  		 : "ili" >			 // operador ou
+| < EQ    		 : "uk" >			 // equals
+| < PONTOVIRGULA : ";" >	 		// Ponto e vírgula para finalizar instruções
+| < VIRGULA 	 : "," >			 // Vírgula para expressões
+| < ABREPAREN 	 : "(" >	 // Parêntese esquerdo
+| < FECHAPAREN 	 : ")" >	 // Parêntese direito
+| < ABRECHAVE 	 : "{" >	 // Chave esquerda para abrir bloco
+| < FECHACHAVE 	 : "}" >	 // Chave direita para fechar bloco
+}
+
+TOKEN : /* IDENTIFICADORES */
+{
+  < ID : [ "a"-"z", "A"-"Z" ] ([ "a"-"z", "A"-"Z", "0"-"9", "_" ])* >	 // Identificadores
+| < EXPRESSAO_INT : [ "0"-"9" ] ([ "0"-"9" ])* >					 // inteiro
+| < EXPRESSAO_FLOAT : [ "0"-"9" ] ([ "0"-"9" ])* "." [ "0"-"9" ] ([ "0"-"9" ])* >	 // ponto flutuante
+| < EXPRESSAO_STRING : "\"" ([ "a"-"z", "A"-"Z", "0"-"9", "_", " " ])* "\"" > // string
+}
+
+void start() :
+{}
+{
+  < MAIN > < ABREPAREN > < FECHAPAREN > < ABRECHAVE >
+  (
+    declaracao()
+  )+
+  < FECHACHAVE >
+}
+
+void declaracao() :
+{}
+{
+  declaraVariavel()
+| testeCondicao()
+| lacoWhile()
+| lacoFor()
+| atribuicao()
+}
+
+void declaraVariavel() :
+{}
+{
+    tipoVariavel() <ID> (inicializacao())? ( <VIRGULA> <ID> (inicializacao())? )* <PONTOVIRGULA>
+}
+
+void tipoVariavel() :
+{}
+{
+    <TIPOINT> | <TIPOFLOAT> | <TIPOSTRING>
+}
+
+void inicializacao() :
+{}
+{
+    <IGUAL> expressao()
+}
+
+void expCondicionalUnica() :
+{}
+{
+  termo()
+  (
+    < EQ > // igualdade
+  | < NOT > < IGUAL > // diferente
+  | < MENOR > (< IGUAL >)? // menor ou menor igual
+  | < MAIOR > (< IGUAL >)? // maior ou maior igual
+  )
+  termo()
+}
+
+// Estrutura condiciona do if
+void expCondicional() :
+{}
+{
+	  expCondicionalUnica()
+	  (
+		( < AND > | < OR > )
+		expCondicionalUnica()
+	  )*
+}
+
+void atribuicao() :
+{}
+{
+  < ID > < IGUAL > expressao() < PONTOVIRGULA >
+}
+
+void expressao() :
+{}
+{
+  (
+	termo()
+  )?
+  (
+    (< MAIS > | < MENOS > | < MULT > | < DIVIS >)
+    termo()
+  )*
+}
+
+void termo() :
+{}
+{
+  (
+    < EXPRESSAO_INT >
+  | < EXPRESSAO_FLOAT >
+  | < EXPRESSAO_STRING >
+  | < ID >
+  )
+}
+
+void testeCondicao() :
+{}
+{
+  < IF > < ABREPAREN > expCondicional() < FECHAPAREN > < ABRECHAVE > (declaracao())* < FECHACHAVE >
+  (
+    < ELSE > < ABRECHAVE > (declaracao())* < FECHACHAVE >
+  )?
+}
+
+void lacoWhile() :
+{}
+{
+  < WHILE > < ABREPAREN > expCondicional() < FECHAPAREN > < ABRECHAVE >
+  (
+    declaracao()
+  )*
+  < FECHACHAVE >
+}
+
+void lacoFor() :
+{}
+{
+  < FOR > < ABREPAREN > 
+  (< ID > < IGUAL > < EXPRESSAO_INT >) < PONTOVIRGULA > 
+  expCondicionalUnica() < PONTOVIRGULA > 
+  < ID >
+  (
+    < MAIS > (< MAIS > | < IGUAL > < EXPRESSAO_INT >) | < MENOS >
+    ( < MENOS > | < IGUAL > < EXPRESSAO_INT > )
+  )
+  < FECHAPAREN > 
+  < ABRECHAVE >
+  (
+    declaracao()
+  )*
+  < FECHACHAVE >
+}
+
+// Método de sincronização do pânico
+void panicMode() :
+{}
+{
+  // Ignora tokens até encontrar um ponto de sincronização
+  (
+    <PONTOVIRGULA>  // Ponto e vírgula
+  | <ABRECHAVE>     // Chave esquerda
+  | <FECHACHAVE>    // Chave direita
+  | <ABREPAREN>     // Parêntese esquerdo
+  | <FECHAPAREN>    // Parêntese direito
+  | <~[]>           // Ignora qualquer token
+  )*
+}
