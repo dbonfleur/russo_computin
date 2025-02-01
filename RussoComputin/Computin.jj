@@ -1,6 +1,6 @@
-options
-{
-  static = true;
+options {
+    STATIC = false;
+    UNICODE_INPUT = true;
 }
 
 PARSER_BEGIN(Computin)
@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import javax.swing.*;
+import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -20,12 +21,8 @@ import javax.swing.event.DocumentListener;
 
 public class Computin
 {
-  private int lineCount = 0;
-  private int tokenCount = 0;
-
   public static void main(String[] args) throws ParseException, IOException {
     if (args.length == 0) {
-      // Se nenhum arquivo for passado, abre a interface gráfica
       SwingUtilities.invokeLater(new Runnable() {
         @Override
         public void run() {
@@ -33,66 +30,228 @@ public class Computin
         }
       });
     } else {
-      // Lê o arquivo e executa o parser
-      String filePath = args[0];
-      String input = new String(Files.readAllBytes(Paths.get(filePath)));
-
+      String input = new String(Files.readAllBytes(Paths.get(args[0])));
       Computin parser = new Computin(new java.io.StringReader(input));
       try {
         parser.start();
         System.out.println("\nComunismo gostou disso camarada!");
-        System.out.println("Linhas de código: " + parser.getLineCount());
-        System.out.println("Tokens reconhecidos: " + parser.getTokenCount());
-      } catch (ParseException e) {
-        System.err.println("\nErro de análise comunista: " + geraMensagemErro(e.currentToken, e.expectedTokenSequences, e.tokenImage));
-      } catch (TokenMgrError e) {
-        System.err.println("\nErro léxico: " + e.getMessage());
+      } catch (ParseException | TokenMgrError e) {
+        System.err.println("\nErro: " + e.getMessage());
       }
     }
   }
+}
+
+class ComputinGUI extends JFrame {
+  private JTextPane codeArea;
+  private JTextArea outputArea;
+  private StyleContext styleContext;
+  private StyledDocument doc;
+  private Style errorStyle;
+  private int lineCount = 0;
+  private int tokenCount = 0;
+
+  public ComputinGUI() {
+    configureInterface();
+    configureStyles();
+    configureListeners();
+  }
+
+  private void configureInterface() {
+    setTitle("RussoComputin - Interface de Interação");
+    setSize(800, 600);
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+    codeArea = new JTextPane();
+    codeArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+    JScrollPane codeScrollPane = new JScrollPane(codeArea);
+    codeScrollPane.setRowHeaderView(new LineNumberView(codeArea));
+
+    outputArea = new JTextArea();
+    outputArea.setEditable(false);
+    outputArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+    
+    JButton parseButton = new JButton("Analisar");
+    parseButton.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        analyzeCode();
+      }
+    });
+
+    JPanel panel = new JPanel(new BorderLayout());
+    panel.add(codeScrollPane, BorderLayout.CENTER);
+    panel.add(parseButton, BorderLayout.SOUTH);
+
+    JPanel outputPanel = new JPanel(new BorderLayout());
+    outputPanel.add(new JScrollPane(outputArea), BorderLayout.CENTER);
+
+    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, panel, outputPanel);
+    splitPane.setResizeWeight(0.7);
+    add(splitPane);
+  }
+
+  private void configureStyles() {
+    styleContext = StyleContext.getDefaultStyleContext();
+    doc = codeArea.getStyledDocument();
+    errorStyle = styleContext.addStyle("error", null);
+    StyleConstants.setForeground(errorStyle, Color.RED);
+    StyleConstants.setUnderline(errorStyle, true);
+    StyleConstants.setBold(errorStyle, true);
+  }
+
+  private void configureListeners() {
+    codeArea.getDocument().addDocumentListener(new DocumentListener() {
+      public void insertUpdate(DocumentEvent e) { updateLineNumbers(); }
+      public void removeUpdate(DocumentEvent e) { updateLineNumbers(); }
+      public void changedUpdate(DocumentEvent e) { updateLineNumbers(); }
+      
+      private void updateLineNumbers() {
+        codeArea.repaint();
+        getContentPane().repaint();
+      }
+    });
+  }
+
+  private class LineNumberView extends JComponent {
+    private final JTextPane textPane;
+
+    public LineNumberView(JTextPane textPane) {
+      this.textPane = textPane;
+      setPreferredSize(new Dimension(50, 0));
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+      super.paintComponent(g);
+      Element root = textPane.getDocument().getDefaultRootElement();
+      FontMetrics fm = textPane.getFontMetrics(textPane.getFont());
+      
+      g.setColor(getBackground());
+      g.fillRect(0, 0, getWidth(), getHeight());
+      g.setColor(Color.GRAY);
+
+      int lineCount = root.getElementCount();
+      for (int i = 0; i < lineCount; i++) {
+        try {
+          int y = textPane.modelToView(root.getElement(i).getStartOffset()).y;
+          String number = String.valueOf(i + 1);
+          g.drawString(number, getWidth() - fm.stringWidth(number) - 5, y + fm.getAscent());
+        } catch (Exception e) {}
+      }
+
+      setPreferredSize(new Dimension(50, lineCount * fm.getHeight()));
+      revalidate();
+    }
+  }
+
+  private void analyzeCode() {
+    clearErrors();
+    try {
+      Computin parser = new Computin(new StringReader(""));
+      parser.ReInit(new StringReader(codeArea.getText()));
+      parser.start();
+      outputArea.setText("Comunismo gostou disto camarada!\nFoices em linha: " + getLineCount() + 
+                        "\nNumero de Martelos: " + getTokenCount());
+    } catch (ParseException ex) {
+      outputArea.setText("Erro de análise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
+	
+      highlightError(ex.currentToken);
+    } catch (Exception ex) {
+      outputArea.setText("Erro inesperado:\n" + ex.getMessage());
+    }
+  }
+
+  private void highlightError(Token tokenErrado) {
+	    try {
+	        // Obter posição absoluta no documento
+	        int linha = tokenErrado.beginLine - 1;
+	        int coluna = tokenErrado.beginColumn - 1;
+	        
+	        Element root = doc.getDefaultRootElement();
+	        Element lineElement = root.getElement(linha);
+	        int startOffset = lineElement.getStartOffset() + coluna;
+	        int endOffset = startOffset + tokenErrado.image.length();
+	        
+	        // Aplicar estilo
+	        doc.setCharacterAttributes(startOffset, endOffset - startOffset, errorStyle, false);
+	        
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	}
+
+  private void clearErrors() {
+    doc.setCharacterAttributes(0, doc.getLength(), 
+        styleContext.getStyle(StyleContext.DEFAULT_STYLE), true);
+  }
 
   // Função que calcula a distância de Levenshtein entre duas strings
-  private static int calculaSimilaridade(String s1, String s2) {
+  public static int calculaSimilaridade(String s1, String s2) {
     int[][] dp = new int[s1.length() + 1][s2.length() + 1];
     for (int i = 0; i <= s1.length(); i++) {
       for (int j = 0; j <= s2.length(); j++) {
-        if (i == 0) {
-          dp[i][j] = j;
-        } else if (j == 0) {
-          dp[i][j] = i;
-        } else {
-          dp[i][j] = Math.min(dp[i - 1][j - 1] 
-                        + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1),
-                        Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1));
-        }
+        if (i == 0) dp[i][j] = j;
+        else if (j == 0) dp[i][j] = i;
+        else dp[i][j] = Math.min(
+          dp[i - 1][j - 1] + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1),
+          Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1)
+        );
       }
     }
     return dp[s1.length()][s2.length()];
   }
 
   // Encontra o token mais similar ao token inesperado
-  private static String encontraTokenSimilar(String tokenInesperado, String[] tokenImage) {
-    String tokenMaisSimilar = null;
-    int menorDistancia = Integer.MAX_VALUE;
-    for (String token : tokenImage) {
-      int distancia = calculaSimilaridade(tokenInesperado, token);
-      if (distancia < menorDistancia) {
-        menorDistancia = distancia;
-        tokenMaisSimilar = token;
-      }
-    }
-    return tokenMaisSimilar;
-  }
+  public static String encontraTokenSimilar(String tokenInesperado, String[] tokenImage) {
+	    String tokenMaisSimilar = null;
+	    int menorDistancia = Integer.MAX_VALUE;
+	
+	    for (String token : tokenImage) {
+	        // Removemos as aspas dos tokens armazenados no array tokenImage para comparação correta
+	        String tokenLimpo = token.replace("\"", "");
+	
+	        // Ignorar tokens que são apenas caracteres únicos ou não palavras-chave
+	        if (tokenLimpo.length() < 2) continue;
+	
+	        int distancia = calculaSimilaridade(tokenInesperado, tokenLimpo);
+	
+	        if (distancia < menorDistancia) {
+	            menorDistancia = distancia;
+	            tokenMaisSimilar = tokenLimpo;
+	        }
+	    }
+	    return tokenMaisSimilar;
+	}
+	
+	public static int encontraSimilaridade(String palavra1, String palavra2) {
+	    int tamanho = Math.min(palavra1.length(), palavra2.length());
+	    int i = 0;
+	    while (i < tamanho && palavra1.charAt(i) == palavra2.charAt(i)) {
+	        i++;
+	    }
+	    return i; // Retorna o índice onde as palavras começam a divergir
+	}
 
   public static String geraMensagemErro(Token tokenAtual, int[][] expectedTokenSequences, String[] tokenImage) {
     StringBuilder erro = new StringBuilder();
+
+	// Encontra o token mais similar
+    String tokenSugerido = encontraTokenSimilar(tokenAtual.image, tokenImage);
+
+    int pontoDivergencia = encontraSimilaridade(tokenAtual.image, tokenSugerido);
+
     erro.append("\nErro comunismo funcionou na linha ")
         .append(tokenAtual.beginLine)
         .append(", coluna ")
-        .append(tokenAtual.beginColumn)
+        .append(tokenAtual.beginColumn + pontoDivergencia - 1)
         .append(".\n");
 
-    erro.append("Foice inesperado: \"").append(tokenAtual.image).append("\"\n");
+    erro.append("Foice inesperado: ").append(tokenAtual.image).append("\n");
+
+    if (tokenSugerido != null) {
+        erro.append("Martelo esperado: ").append(tokenSugerido).append("\n\n");
+    }
 
     // Verifica se o token esperado é um símbolo importante ausente e gera mensagens apropriadas
     boolean faltaPontoVirgula = false;
@@ -130,131 +289,14 @@ public class Computin
         erro.append("Erro de partilha de bens: Comunismo esperava de você comunhar um '}' camarada.\n");
     }
 
-    if(!faltaPontoVirgula
-        && !faltaAbreParenteses
-        && !faltaFechaParenteses
-        && !faltaAbreChave
-        && !faltaFechaChave)
-    {	  
-        // Sugestão do token mais próximo
-        String tokenSugerido = encontraTokenSimilar(tokenAtual.image, tokenImage);
-        if (tokenSugerido != null) {
-          erro.append("Martelo esperado: ").append(tokenSugerido).append("\n");
-        }
-
-        erro.append(tokenAtual.image).append("\n");
-        erro.append(" ".repeat(Math.max(0, tokenAtual.beginColumn - 1)) + "^\n");
-    }
+    erro.append(tokenAtual.image).append("\n");
+    erro.append(" ".repeat(pontoDivergencia) + "^\n");
+    
     return erro.toString();
   }
 
-  public int getLineCount() {
-    return lineCount;
-  }
-
-  public int getTokenCount() {
-    return tokenCount;
-  }
-}
-
-// Interface gráfica
-class ComputinGUI extends JFrame {
-  private JTextPane codeArea;
-  private JTextArea outputArea;
-  private JButton parseButton;
-
-  public ComputinGUI() {
-    setTitle("RussoComputin - Interface de Interação");
-    setSize(800, 600);
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-    // Área de código com números de linha
-    codeArea = new JTextPane();
-    JScrollPane codeScrollPane = new JScrollPane(codeArea);
-    codeScrollPane.setRowHeaderView(new LineNumberView(codeArea));
-
-    outputArea = new JTextArea();
-    parseButton = new JButton("Analisar");
-
-    // Atualiza os números de linha em tempo real
-    codeArea.getDocument().addDocumentListener(new DocumentListener() {
-      @Override
-      public void insertUpdate(DocumentEvent e) {
-        updateLineNumbers();
-      }
-
-      @Override
-      public void removeUpdate(DocumentEvent e) {
-        updateLineNumbers();
-      }
-
-      @Override
-      public void changedUpdate(DocumentEvent e) {
-        updateLineNumbers();
-      }
-
-      private void updateLineNumbers() {
-        codeScrollPane.getRowHeader().repaint();
-      }
-    });
-
-    parseButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        String input = codeArea.getText();
-        Computin parser = new Computin(new StringReader(input));
-        try {
-          parser.start();
-          outputArea.setText("Comunismo gostou disso camarada!\n");
-          outputArea.append("Linhas de código: " + parser.getLineCount() + "\n");
-          outputArea.append("Tokens reconhecidos: " + parser.getTokenCount() + "\n");
-        } catch (ParseException ex) {
-          outputArea.setText("Erro de análise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
-        } catch (TokenMgrError ex) {
-          outputArea.setText("Erro léxico: " + ex.getMessage());
-        }
-      }
-    });
-
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.add(codeScrollPane, BorderLayout.CENTER);
-    panel.add(parseButton, BorderLayout.SOUTH);
-
-    JPanel outputPanel = new JPanel(new BorderLayout());
-    outputPanel.add(new JScrollPane(outputArea), BorderLayout.CENTER);
-
-    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, panel, outputPanel);
-    splitPane.setResizeWeight(0.7);
-
-    add(splitPane);
-  }
-
-  // Classe para exibir números de linha
-  private class LineNumberView extends JComponent {
-    private final JTextPane textPane;
-
-    public LineNumberView(JTextPane textPane) {
-      this.textPane = textPane;
-      setPreferredSize(new Dimension(30, 0));
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-      super.paintComponent(g);
-      int lineHeight = textPane.getFontMetrics(textPane.getFont()).getHeight();
-      int startOffset = textPane.getDocument().getDefaultRootElement().getElement(0).getStartOffset();
-      int endOffset = textPane.getDocument().getDefaultRootElement().getElement(textPane.getDocument().getDefaultRootElement().getElementCount() - 1).getEndOffset();
-      int startLine = textPane.getDocument().getDefaultRootElement().getElementIndex(startOffset);
-      int endLine = textPane.getDocument().getDefaultRootElement().getElementIndex(endOffset);
-
-      for (int i = startLine; i <= endLine; i++) {
-        String lineNumber = String.valueOf(i + 1);
-        int x = getWidth() - g.getFontMetrics().stringWidth(lineNumber) - 5;
-        int y = (i - startLine) * lineHeight + lineHeight - 5;
-        g.drawString(lineNumber, x, y);
-      }
-    }
-  }
+  private int getLineCount() { return lineCount; }
+  private int getTokenCount() { return tokenCount; }
 }
 
 PARSER_END(Computin)
@@ -269,7 +311,7 @@ SKIP :
 
 TOKEN : /* PALAVRAS RESERVADAS */
 {
-  < MAIN : "suka_blyat" >				 // main principal
+  < MAIN : "suka_blyat" >				// main principal
 | < TIPOINT : "marikhuana" >			// tipo int
 | < TIPOFLOAT : "missil" >			 	// tipo float
 | < TIPOSTRING : "stroka" > 			// tipo string
@@ -314,7 +356,7 @@ void start() :
   < MAIN > < ABREPAREN > < FECHAPAREN > < ABRECHAVE >
   (
     declaracao()
-  )+
+  )*
   < FECHACHAVE >
 }
 

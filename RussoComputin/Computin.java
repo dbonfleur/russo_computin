@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import javax.swing.*;
+import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -14,12 +15,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 public class Computin implements ComputinConstants {
-  private int lineCount = 0;
-  private int tokenCount = 0;
-
   public static void main(String[] args) throws ParseException, IOException {
     if (args.length == 0) {
-      // Se nenhum arquivo for passado, abre a interface gráfica
       SwingUtilities.invokeLater(new Runnable() {
         @Override
         public void run() {
@@ -27,137 +24,24 @@ public class Computin implements ComputinConstants {
         }
       });
     } else {
-      // Lê o arquivo e executa o parser
-      String filePath = args[0];
-      String input = new String(Files.readAllBytes(Paths.get(filePath)));
-
+      String input = new String(Files.readAllBytes(Paths.get(args[0])));
       Computin parser = new Computin(new java.io.StringReader(input));
       try {
         parser.start();
         System.out.println("\nComunismo gostou disso camarada!");
-        System.out.println("Linhas de c\u00f3digo: " + parser.getLineCount());
-        System.out.println("Tokens reconhecidos: " + parser.getTokenCount());
-      } catch (ParseException e) {
-        System.err.println("\nErro de an\u00e1lise comunista: " + geraMensagemErro(e.currentToken, e.expectedTokenSequences, e.tokenImage));
-      } catch (TokenMgrError e) {
-        System.err.println("\nErro l\u00e9xico: " + e.getMessage());
+      } catch (ParseException | TokenMgrError e) {
+        System.err.println("\nErro: " + e.getMessage());
       }
     }
   }
 
-  // Função que calcula a distância de Levenshtein entre duas strings
-  private static int calculaSimilaridade(String s1, String s2) {
-    int[][] dp = new int[s1.length() + 1][s2.length() + 1];
-    for (int i = 0; i <= s1.length(); i++) {
-      for (int j = 0; j <= s2.length(); j++) {
-        if (i == 0) {
-          dp[i][j] = j;
-        } else if (j == 0) {
-          dp[i][j] = i;
-        } else {
-          dp[i][j] = Math.min(dp[i - 1][j - 1]
-                        + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1),
-                        Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1));
-        }
-      }
-    }
-    return dp[s1.length()][s2.length()];
-  }
-
-  // Encontra o token mais similar ao token inesperado
-  private static String encontraTokenSimilar(String tokenInesperado, String[] tokenImage) {
-    String tokenMaisSimilar = null;
-    int menorDistancia = Integer.MAX_VALUE;
-    for (String token : tokenImage) {
-      int distancia = calculaSimilaridade(tokenInesperado, token);
-      if (distancia < menorDistancia) {
-        menorDistancia = distancia;
-        tokenMaisSimilar = token;
-      }
-    }
-    return tokenMaisSimilar;
-  }
-
-  public static String geraMensagemErro(Token tokenAtual, int[][] expectedTokenSequences, String[] tokenImage) {
-    StringBuilder erro = new StringBuilder();
-    erro.append("\nErro comunismo funcionou na linha ")
-        .append(tokenAtual.beginLine)
-        .append(", coluna ")
-        .append(tokenAtual.beginColumn)
-        .append(".\n");
-
-    erro.append("Foice inesperado: \"").append(tokenAtual.image).append("\"\n");
-
-    // Verifica se o token esperado é um símbolo importante ausente e gera mensagens apropriadas
-    boolean faltaPontoVirgula = false;
-    boolean faltaAbreParenteses = false;
-    boolean faltaFechaParenteses = false;
-    boolean faltaAbreChave = false;
-    boolean faltaFechaChave = false;
-
-    // Itera sobre os tokens esperados para verificar ausências comuns
-    for (int[] seq : expectedTokenSequences) {
-        for (int tokenIndex : seq) {
-            String esperado = tokenImage[tokenIndex];
-            if (esperado.equals("\";\"")) faltaPontoVirgula = true;
-            if (esperado.equals("\"(\"")) faltaAbreParenteses = true;
-            if (esperado.equals("\")\"")) faltaFechaParenteses = true;
-            if (esperado.equals("\"{\"")) faltaAbreChave = true;
-            if (esperado.equals("\"}\"")) faltaFechaChave = true;
-        }
-    }
-
-    // Adiciona mensagens específicas para tokens faltantes
-    if (faltaPontoVirgula) {
-        erro.append("Erro de partilha de bens: Comunismo esperava compartilhar um ';' entre os camaradas.\n");
-    }
-    if (faltaAbreParenteses) {
-        erro.append("Erro de partilha de bens: Comunismo esperava de voc\u00ea comunhar um '(' camarada.\n");
-    }
-    if (faltaFechaParenteses) {
-        erro.append("Erro de partilha de bens: Comunismo esperava de voc\u00ea comunhar um ')' camarada.\n");
-    }
-    if (faltaAbreChave) {
-        erro.append("Erro de partilha de bens: Comunismo esperava de voc\u00ea comunhar um '{' camarada.\n");
-    }
-    if (faltaFechaChave) {
-        erro.append("Erro de partilha de bens: Comunismo esperava de voc\u00ea comunhar um '}' camarada.\n");
-    }
-
-    if(!faltaPontoVirgula
-        && !faltaAbreParenteses
-        && !faltaFechaParenteses
-        && !faltaAbreChave
-        && !faltaFechaChave)
-    {
-        // Sugestão do token mais próximo
-        String tokenSugerido = encontraTokenSimilar(tokenAtual.image, tokenImage);
-        if (tokenSugerido != null) {
-          erro.append("Martelo esperado: ").append(tokenSugerido).append("\n");
-        }
-
-        erro.append(tokenAtual.image).append("\n");
-        erro.append(" ".repeat(Math.max(0, tokenAtual.beginColumn - 1)) + "^\n");
-    }
-    return erro.toString();
-  }
-
-  public int getLineCount() {
-    return lineCount;
-  }
-
-  public int getTokenCount() {
-    return tokenCount;
-  }
-
-  static final public void start() throws ParseException {
+  final public void start() throws ParseException {
     jj_consume_token(MAIN);
     jj_consume_token(ABREPAREN);
     jj_consume_token(FECHAPAREN);
     jj_consume_token(ABRECHAVE);
     label_1:
     while (true) {
-      declaracao();
       switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
       case TIPOINT:
       case TIPOFLOAT:
@@ -173,11 +57,12 @@ public class Computin implements ComputinConstants {
         jj_la1[0] = jj_gen;
         break label_1;
       }
+      declaracao();
     }
     jj_consume_token(FECHACHAVE);
 }
 
-  static final public void declaracao() throws ParseException {
+  final public void declaracao() throws ParseException {
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case TIPOINT:
     case TIPOFLOAT:
@@ -208,7 +93,7 @@ public class Computin implements ComputinConstants {
     }
 }
 
-  static final public void declaraVariavel() throws ParseException {
+  final public void declaraVariavel() throws ParseException {
     tipoVariavel();
     jj_consume_token(ID);
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
@@ -246,7 +131,7 @@ public class Computin implements ComputinConstants {
     jj_consume_token(PONTOVIRGULA);
 }
 
-  static final public void tipoVariavel() throws ParseException {
+  final public void tipoVariavel() throws ParseException {
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case TIPOINT:{
       jj_consume_token(TIPOINT);
@@ -267,12 +152,12 @@ public class Computin implements ComputinConstants {
     }
 }
 
-  static final public void inicializacao() throws ParseException {
+  final public void inicializacao() throws ParseException {
     jj_consume_token(IGUAL);
     expressao();
 }
 
-  static final public void expCondicionalUnica() throws ParseException {
+  final public void expCondicionalUnica() throws ParseException {
     termo();
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case EQ:{
@@ -319,7 +204,7 @@ public class Computin implements ComputinConstants {
 }
 
 // Estrutura condiciona do if
-  static final public void expCondicional() throws ParseException {
+  final public void expCondicional() throws ParseException {
     expCondicionalUnica();
     label_3:
     while (true) {
@@ -351,14 +236,14 @@ public class Computin implements ComputinConstants {
     }
 }
 
-  static final public void atribuicao() throws ParseException {
+  final public void atribuicao() throws ParseException {
     jj_consume_token(ID);
     jj_consume_token(IGUAL);
     expressao();
     jj_consume_token(PONTOVIRGULA);
 }
 
-  static final public void expressao() throws ParseException {
+  final public void expressao() throws ParseException {
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case ID:
     case EXPRESSAO_INT:
@@ -411,7 +296,7 @@ public class Computin implements ComputinConstants {
     }
 }
 
-  static final public void termo() throws ParseException {
+  final public void termo() throws ParseException {
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case EXPRESSAO_INT:{
       jj_consume_token(EXPRESSAO_INT);
@@ -436,7 +321,7 @@ public class Computin implements ComputinConstants {
     }
 }
 
-  static final public void testeCondicao() throws ParseException {
+  final public void testeCondicao() throws ParseException {
     jj_consume_token(IF);
     jj_consume_token(ABREPAREN);
     expCondicional();
@@ -494,7 +379,7 @@ public class Computin implements ComputinConstants {
     }
 }
 
-  static final public void lacoWhile() throws ParseException {
+  final public void lacoWhile() throws ParseException {
     jj_consume_token(WHILE);
     jj_consume_token(ABREPAREN);
     expCondicional();
@@ -522,7 +407,7 @@ public class Computin implements ComputinConstants {
     jj_consume_token(FECHACHAVE);
 }
 
-  static final public void lacoFor() throws ParseException {
+  final public void lacoFor() throws ParseException {
     jj_consume_token(FOR);
     jj_consume_token(ABREPAREN);
     jj_consume_token(ID);
@@ -601,7 +486,7 @@ public class Computin implements ComputinConstants {
 }
 
 // Método de sincronização do pânico
-  static final public void panicMode() throws ParseException {
+  final public void panicMode() throws ParseException {
     label_9:
     while (true) {
       switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
@@ -651,17 +536,16 @@ public class Computin implements ComputinConstants {
     }
 }
 
-  static private boolean jj_initialized_once = false;
   /** Generated Token Manager. */
-  static public ComputinTokenManager token_source;
-  static SimpleCharStream jj_input_stream;
+  public ComputinTokenManager token_source;
+  SimpleCharStream jj_input_stream;
   /** Current token. */
-  static public Token token;
+  public Token token;
   /** Next token. */
-  static public Token jj_nt;
-  static private int jj_ntk;
-  static private int jj_gen;
-  static final private int[] jj_la1 = new int[25];
+  public Token jj_nt;
+  private int jj_ntk;
+  private int jj_gen;
+  final private int[] jj_la1 = new int[25];
   static private int[] jj_la1_0;
   static private int[] jj_la1_1;
   static {
@@ -681,13 +565,6 @@ public class Computin implements ComputinConstants {
   }
   /** Constructor with InputStream and supplied encoding */
   public Computin(java.io.InputStream stream, String encoding) {
-	 if (jj_initialized_once) {
-	   System.out.println("ERROR: Second call to constructor of static parser.  ");
-	   System.out.println("	   You must either use ReInit() or set the JavaCC option STATIC to false");
-	   System.out.println("	   during parser generation.");
-	   throw new Error();
-	 }
-	 jj_initialized_once = true;
 	 try { jj_input_stream = new SimpleCharStream(stream, encoding, 1, 1); } catch(java.io.UnsupportedEncodingException e) { throw new RuntimeException(e); }
 	 token_source = new ComputinTokenManager(jj_input_stream);
 	 token = new Token();
@@ -697,11 +574,11 @@ public class Computin implements ComputinConstants {
   }
 
   /** Reinitialise. */
-  static public void ReInit(java.io.InputStream stream) {
+  public void ReInit(java.io.InputStream stream) {
 	  ReInit(stream, null);
   }
   /** Reinitialise. */
-  static public void ReInit(java.io.InputStream stream, String encoding) {
+  public void ReInit(java.io.InputStream stream, String encoding) {
 	 try { jj_input_stream.ReInit(stream, encoding, 1, 1); } catch(java.io.UnsupportedEncodingException e) { throw new RuntimeException(e); }
 	 token_source.ReInit(jj_input_stream);
 	 token = new Token();
@@ -712,13 +589,6 @@ public class Computin implements ComputinConstants {
 
   /** Constructor. */
   public Computin(java.io.Reader stream) {
-	 if (jj_initialized_once) {
-	   System.out.println("ERROR: Second call to constructor of static parser. ");
-	   System.out.println("	   You must either use ReInit() or set the JavaCC option STATIC to false");
-	   System.out.println("	   during parser generation.");
-	   throw new Error();
-	 }
-	 jj_initialized_once = true;
 	 jj_input_stream = new SimpleCharStream(stream, 1, 1);
 	 token_source = new ComputinTokenManager(jj_input_stream);
 	 token = new Token();
@@ -728,7 +598,7 @@ public class Computin implements ComputinConstants {
   }
 
   /** Reinitialise. */
-  static public void ReInit(java.io.Reader stream) {
+  public void ReInit(java.io.Reader stream) {
 	if (jj_input_stream == null) {
 	   jj_input_stream = new SimpleCharStream(stream, 1, 1);
 	} else {
@@ -747,13 +617,6 @@ public class Computin implements ComputinConstants {
 
   /** Constructor with generated Token Manager. */
   public Computin(ComputinTokenManager tm) {
-	 if (jj_initialized_once) {
-	   System.out.println("ERROR: Second call to constructor of static parser. ");
-	   System.out.println("	   You must either use ReInit() or set the JavaCC option STATIC to false");
-	   System.out.println("	   during parser generation.");
-	   throw new Error();
-	 }
-	 jj_initialized_once = true;
 	 token_source = tm;
 	 token = new Token();
 	 jj_ntk = -1;
@@ -770,7 +633,7 @@ public class Computin implements ComputinConstants {
 	 for (int i = 0; i < 25; i++) jj_la1[i] = -1;
   }
 
-  static private Token jj_consume_token(int kind) throws ParseException {
+  private Token jj_consume_token(int kind) throws ParseException {
 	 Token oldToken;
 	 if ((oldToken = token).next != null) token = token.next;
 	 else token = token.next = token_source.getNextToken();
@@ -786,7 +649,7 @@ public class Computin implements ComputinConstants {
 
 
 /** Get the next Token. */
-  static final public Token getNextToken() {
+  final public Token getNextToken() {
 	 if (token.next != null) token = token.next;
 	 else token = token.next = token_source.getNextToken();
 	 jj_ntk = -1;
@@ -795,7 +658,7 @@ public class Computin implements ComputinConstants {
   }
 
 /** Get the specific Token. */
-  static final public Token getToken(int index) {
+  final public Token getToken(int index) {
 	 Token t = token;
 	 for (int i = 0; i < index; i++) {
 	   if (t.next != null) t = t.next;
@@ -804,19 +667,19 @@ public class Computin implements ComputinConstants {
 	 return t;
   }
 
-  static private int jj_ntk_f() {
+  private int jj_ntk_f() {
 	 if ((jj_nt=token.next) == null)
 	   return (jj_ntk = (token.next=token_source.getNextToken()).kind);
 	 else
 	   return (jj_ntk = jj_nt.kind);
   }
 
-  static private java.util.List<int[]> jj_expentries = new java.util.ArrayList<int[]>();
-  static private int[] jj_expentry;
-  static private int jj_kind = -1;
+  private java.util.List<int[]> jj_expentries = new java.util.ArrayList<int[]>();
+  private int[] jj_expentry;
+  private int jj_kind = -1;
 
   /** Generate ParseException. */
-  static public ParseException generateParseException() {
+  public ParseException generateParseException() {
 	 jj_expentries.clear();
 	 boolean[] la1tokens = new boolean[35];
 	 if (jj_kind >= 0) {
@@ -849,79 +712,57 @@ public class Computin implements ComputinConstants {
 	 return new ParseException(token, exptokseq, tokenImage);
   }
 
-  static private boolean trace_enabled;
+  private boolean trace_enabled;
 
 /** Trace enabled. */
-  static final public boolean trace_enabled() {
+  final public boolean trace_enabled() {
 	 return trace_enabled;
   }
 
   /** Enable tracing. */
-  static final public void enable_tracing() {
+  final public void enable_tracing() {
   }
 
   /** Disable tracing. */
-  static final public void disable_tracing() {
+  final public void disable_tracing() {
   }
 
 }
 
-// Interface gráfica
 class ComputinGUI extends JFrame {
   private JTextPane codeArea;
   private JTextArea outputArea;
-  private JButton parseButton;
+  private StyleContext styleContext;
+  private StyledDocument doc;
+  private Style errorStyle;
+  private int lineCount = 0;
+  private int tokenCount = 0;
 
   public ComputinGUI() {
+    configureInterface();
+    configureStyles();
+    configureListeners();
+  }
+
+  private void configureInterface() {
     setTitle("RussoComputin - Interface de Intera\u00e7\u00e3o");
     setSize(800, 600);
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-    // Área de código com números de linha
     codeArea = new JTextPane();
+    codeArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
     JScrollPane codeScrollPane = new JScrollPane(codeArea);
     codeScrollPane.setRowHeaderView(new LineNumberView(codeArea));
 
     outputArea = new JTextArea();
-    parseButton = new JButton("Analisar");
+    outputArea.setEditable(false);
+    outputArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
 
-    // Atualiza os números de linha em tempo real
-    codeArea.getDocument().addDocumentListener(new DocumentListener() {
-      @Override
-      public void insertUpdate(DocumentEvent e) {
-        updateLineNumbers();
-      }
-
-      @Override
-      public void removeUpdate(DocumentEvent e) {
-        updateLineNumbers();
-      }
-
-      @Override
-      public void changedUpdate(DocumentEvent e) {
-        updateLineNumbers();
-      }
-
-      private void updateLineNumbers() {
-        codeScrollPane.getRowHeader().repaint();
-      }
-    });
-
+    JButton parseButton = new JButton("Analisar");
     parseButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        String input = codeArea.getText();
-        Computin parser = new Computin(new StringReader(input));
-        try {
-          parser.start();
-          outputArea.setText("Comunismo gostou disso camarada!\n");
-          outputArea.append("Linhas de c\u00f3digo: " + parser.getLineCount() + "\n");
-          outputArea.append("Tokens reconhecidos: " + parser.getTokenCount() + "\n");
-        } catch (ParseException ex) {
-          outputArea.setText("Erro de an\u00e1lise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
-        } catch (TokenMgrError ex) {
-          outputArea.setText("Erro l\u00e9xico: " + ex.getMessage());
-        }
+        analyzeCode();
       }
     });
 
@@ -934,34 +775,213 @@ class ComputinGUI extends JFrame {
 
     JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, panel, outputPanel);
     splitPane.setResizeWeight(0.7);
-
     add(splitPane);
   }
 
-  // Classe para exibir números de linha
+  private void configureStyles() {
+    styleContext = StyleContext.getDefaultStyleContext();
+    doc = codeArea.getStyledDocument();
+    errorStyle = styleContext.addStyle("error", null);
+    StyleConstants.setForeground(errorStyle, Color.RED);
+    StyleConstants.setUnderline(errorStyle, true);
+    StyleConstants.setBold(errorStyle, true);
+  }
+
+  private void configureListeners() {
+    codeArea.getDocument().addDocumentListener(new DocumentListener() {
+      public void insertUpdate(DocumentEvent e) { updateLineNumbers(); }
+      public void removeUpdate(DocumentEvent e) { updateLineNumbers(); }
+      public void changedUpdate(DocumentEvent e) { updateLineNumbers(); }
+
+      private void updateLineNumbers() {
+        codeArea.repaint();
+        getContentPane().repaint();
+      }
+    });
+  }
+
   private class LineNumberView extends JComponent {
     private final JTextPane textPane;
 
     public LineNumberView(JTextPane textPane) {
       this.textPane = textPane;
-      setPreferredSize(new Dimension(30, 0));
+      setPreferredSize(new Dimension(50, 0));
     }
 
     @Override
     protected void paintComponent(Graphics g) {
       super.paintComponent(g);
-      int lineHeight = textPane.getFontMetrics(textPane.getFont()).getHeight();
-      int startOffset = textPane.getDocument().getDefaultRootElement().getElement(0).getStartOffset();
-      int endOffset = textPane.getDocument().getDefaultRootElement().getElement(textPane.getDocument().getDefaultRootElement().getElementCount() - 1).getEndOffset();
-      int startLine = textPane.getDocument().getDefaultRootElement().getElementIndex(startOffset);
-      int endLine = textPane.getDocument().getDefaultRootElement().getElementIndex(endOffset);
+      Element root = textPane.getDocument().getDefaultRootElement();
+      FontMetrics fm = textPane.getFontMetrics(textPane.getFont());
 
-      for (int i = startLine; i <= endLine; i++) {
-        String lineNumber = String.valueOf(i + 1);
-        int x = getWidth() - g.getFontMetrics().stringWidth(lineNumber) - 5;
-        int y = (i - startLine) * lineHeight + lineHeight - 5;
-        g.drawString(lineNumber, x, y);
+      g.setColor(getBackground());
+      g.fillRect(0, 0, getWidth(), getHeight());
+      g.setColor(Color.GRAY);
+
+      int lineCount = root.getElementCount();
+      for (int i = 0; i < lineCount; i++) {
+        try {
+          int y = textPane.modelToView(root.getElement(i).getStartOffset()).y;
+          String number = String.valueOf(i + 1);
+          g.drawString(number, getWidth() - fm.stringWidth(number) - 5, y + fm.getAscent());
+        } catch (Exception e) {}
       }
+
+      setPreferredSize(new Dimension(50, lineCount * fm.getHeight()));
+      revalidate();
     }
   }
+
+  private void analyzeCode() {
+    clearErrors();
+    try {
+      Computin parser = new Computin(new StringReader(""));
+      parser.ReInit(new StringReader(codeArea.getText()));
+      parser.start();
+      outputArea.setText("Comunismo gostou disto camarada!\nFoices em linha: " + getLineCount() +
+                        "\nNumero de Martelos: " + getTokenCount());
+    } catch (ParseException ex) {
+      outputArea.setText("Erro de an\u00e1lise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
+
+      highlightError(ex.currentToken);
+    } catch (Exception ex) {
+      outputArea.setText("Erro inesperado:\n" + ex.getMessage());
+    }
+  }
+
+  private void highlightError(Token tokenErrado) {
+            try {
+                // Obter posição absoluta no documento
+                int linha = tokenErrado.beginLine - 1;
+                int coluna = tokenErrado.beginColumn - 1;
+
+                Element root = doc.getDefaultRootElement();
+                Element lineElement = root.getElement(linha);
+                int startOffset = lineElement.getStartOffset() + coluna;
+                int endOffset = startOffset + tokenErrado.image.length();
+
+                // Aplicar estilo
+                doc.setCharacterAttributes(startOffset, endOffset - startOffset, errorStyle, false);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+  private void clearErrors() {
+    doc.setCharacterAttributes(0, doc.getLength(),
+        styleContext.getStyle(StyleContext.DEFAULT_STYLE), true);
+  }
+
+  // Função que calcula a distância de Levenshtein entre duas strings
+  public static int calculaSimilaridade(String s1, String s2) {
+    int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+    for (int i = 0; i <= s1.length(); i++) {
+      for (int j = 0; j <= s2.length(); j++) {
+        if (i == 0) dp[i][j] = j;
+        else if (j == 0) dp[i][j] = i;
+        else dp[i][j] = Math.min(
+          dp[i - 1][j - 1] + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1),
+          Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1)
+        );
+      }
+    }
+    return dp[s1.length()][s2.length()];
+  }
+
+  // Encontra o token mais similar ao token inesperado
+  public static String encontraTokenSimilar(String tokenInesperado, String[] tokenImage) {
+            String tokenMaisSimilar = null;
+            int menorDistancia = Integer.MAX_VALUE;
+
+            for (String token : tokenImage) {
+                // Removemos as aspas dos tokens armazenados no array tokenImage para comparação correta
+                String tokenLimpo = token.replace("\"", "");
+
+                // Ignorar tokens que são apenas caracteres únicos ou não palavras-chave
+                if (tokenLimpo.length() < 2) continue;
+
+                int distancia = calculaSimilaridade(tokenInesperado, tokenLimpo);
+
+                if (distancia < menorDistancia) {
+                    menorDistancia = distancia;
+                    tokenMaisSimilar = tokenLimpo;
+                }
+            }
+            return tokenMaisSimilar;
+        }
+
+        public static int encontraSimilaridade(String palavra1, String palavra2) {
+            int tamanho = Math.min(palavra1.length(), palavra2.length());
+            int i = 0;
+            while (i < tamanho && palavra1.charAt(i) == palavra2.charAt(i)) {
+                i++;
+            }
+            return i; // Retorna o índice onde as palavras começam a divergir
+        }
+
+  public static String geraMensagemErro(Token tokenAtual, int[][] expectedTokenSequences, String[] tokenImage) {
+    StringBuilder erro = new StringBuilder();
+
+        // Encontra o token mais similar
+    String tokenSugerido = encontraTokenSimilar(tokenAtual.image, tokenImage);
+
+    int pontoDivergencia = encontraSimilaridade(tokenAtual.image, tokenSugerido);
+
+    erro.append("\nErro comunismo funcionou na linha ")
+        .append(tokenAtual.beginLine)
+        .append(", coluna ")
+        .append(tokenAtual.beginColumn + pontoDivergencia - 1)
+        .append(".\n");
+
+    erro.append("Foice inesperado: ").append(tokenAtual.image).append("\n");
+
+    if (tokenSugerido != null) {
+        erro.append("Martelo esperado: ").append(tokenSugerido).append("\n\n");
+    }
+
+    // Verifica se o token esperado é um símbolo importante ausente e gera mensagens apropriadas
+    boolean faltaPontoVirgula = false;
+    boolean faltaAbreParenteses = false;
+    boolean faltaFechaParenteses = false;
+    boolean faltaAbreChave = false;
+    boolean faltaFechaChave = false;
+
+    // Itera sobre os tokens esperados para verificar ausências comuns
+    for (int[] seq : expectedTokenSequences) {
+        for (int tokenIndex : seq) {
+            String esperado = tokenImage[tokenIndex];
+            if (esperado.equals("\";\"")) faltaPontoVirgula = true;
+            if (esperado.equals("\"(\"")) faltaAbreParenteses = true;
+            if (esperado.equals("\")\"")) faltaFechaParenteses = true;
+            if (esperado.equals("\"{\"")) faltaAbreChave = true;
+            if (esperado.equals("\"}\"")) faltaFechaChave = true;
+        }
+    }
+
+    // Adiciona mensagens específicas para tokens faltantes
+    if (faltaPontoVirgula) {
+        erro.append("Erro de partilha de bens: Comunismo esperava compartilhar um ';' entre os camaradas.\n");
+    }
+    if (faltaAbreParenteses) {
+        erro.append("Erro de partilha de bens: Comunismo esperava de voc\u00ea comunhar um '(' camarada.\n");
+    }
+    if (faltaFechaParenteses) {
+        erro.append("Erro de partilha de bens: Comunismo esperava de voc\u00ea comunhar um ')' camarada.\n");
+    }
+    if (faltaAbreChave) {
+        erro.append("Erro de partilha de bens: Comunismo esperava de voc\u00ea comunhar um '{' camarada.\n");
+    }
+    if (faltaFechaChave) {
+        erro.append("Erro de partilha de bens: Comunismo esperava de voc\u00ea comunhar um '}' camarada.\n");
+    }
+
+    erro.append(tokenAtual.image).append("\n");
+    erro.append(" ".repeat(pontoDivergencia) + "^\n");
+
+    return erro.toString();
+  }
+
+  private int getLineCount() { return lineCount; }
+  private int getTokenCount() { return tokenCount; }
 }
