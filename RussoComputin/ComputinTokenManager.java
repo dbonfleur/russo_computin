@@ -1003,7 +1003,7 @@ public static final String[] jjstrLiteralImages = {
 "\165\155\156\157\172\150\145\156\151\171\145", "\162\141\172\144\145\154\145\156\151\171\145", "\162\141\166\156\171\171", 
 "\156\145\164", "\142\157\154\163\150\145", 
 "\156\145\172\156\141\143\150\151\164\145\154\156\171\171", "\172\141\164\145\155", "\151\154\151", "\165\153", "\73", "\54", "\50", 
-"\51", "\173", "\175", null, null, null, null, null, };
+"\51", "\173", "\175", null, null, null, null, };
 protected Token jjFillToken()
 {
    final Token t;
@@ -1067,10 +1067,6 @@ public Token getNextToken()
    jjmatchedKind = 0x7fffffff;
    jjmatchedPos = 0;
    curPos = jjMoveStringLiteralDfa0_0();
-   if (jjmatchedPos == 0 && jjmatchedKind > 34)
-   {
-      jjmatchedKind = 34;
-   }
    if (jjmatchedKind != 0x7fffffff)
    {
       if (jjmatchedPos + 1 < curPos)
@@ -1223,10 +1219,10 @@ public static final String[] lexStateNames = {
 /** Lex State array. */
 public static final int[] jjnewLexState = {
    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
-   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+   -1, -1, -1, -1, -1, -1, -1, -1, -1, 
 };
 static final long[] jjtoToken = {
-   0x7ffffffe1L, 
+   0x3ffffffe1L, 
 };
 static final long[] jjtoSkip = {
    0x1eL, 

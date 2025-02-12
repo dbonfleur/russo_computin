@@ -146,20 +146,17 @@ class ComputinGUI extends JFrame {
   }
 
   private void analyzeCode() {
-    clearErrors();
+	clearErrors();
     try {
-      Computin parser = new Computin(new StringReader(""));
-      parser.ReInit(new StringReader(codeArea.getText()));
+      Computin parser = new Computin(new StringReader(codeArea.getText()));
       parser.start();
-      outputArea.setText("Comunismo gostou disto camarada!\nFoices em linha: " + getLineCount() + 
-                        "\nNumero de Martelos: " + getTokenCount());
-    } catch (ParseException ex) {
-      outputArea.setText("Erro de análise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
-	
-      highlightError(ex.currentToken);
-    } catch (Exception ex) {
+      outputArea.setText("Comunismo gostou disto camarada!");
+  	} catch (ParseException ex) {
+      //outputArea.setText("Erro de análise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
+      //highlightError(ex.currentToken);
+    }/* catch (Exception ex) {
       outputArea.setText("Erro inesperado:\n" + ex.getMessage());
-    }
+    }*/
   }
 
   private void highlightError(Token tokenErrado) {
@@ -363,11 +360,19 @@ void start() :
 void declaracao() :
 {}
 {
-  declaraVariavel()
-| testeCondicao()
-| lacoWhile()
-| lacoFor()
-| atribuicao()
+  	try { 
+		  declaraVariavel()
+		| testeCondicao()
+		| lacoWhile()
+		| lacoFor()
+		| atribuicao()
+	} catch(ParseException e) {
+		System.out.println(e.currentToken);
+		Token t;
+		do {
+		  t = getNextToken();
+		} while (t.kind != PONTOVIRGULA);
+	}
 }
 
 void declaraVariavel() :
@@ -433,12 +438,10 @@ void expressao() :
 void termo() :
 {}
 {
-  (
     < EXPRESSAO_INT >
   | < EXPRESSAO_FLOAT >
   | < EXPRESSAO_STRING >
   | < ID >
-  )
 }
 
 void testeCondicao() :
@@ -477,19 +480,4 @@ void lacoFor() :
     declaracao()
   )*
   < FECHACHAVE >
-}
-
-// Método de sincronização do pânico
-void panicMode() :
-{}
-{
-  // Ignora tokens até encontrar um ponto de sincronização
-  (
-    <PONTOVIRGULA>  // Ponto e vírgula
-  | <ABRECHAVE>     // Chave esquerda
-  | <FECHACHAVE>    // Chave direita
-  | <ABREPAREN>     // Parêntese esquerdo
-  | <FECHAPAREN>    // Parêntese direito
-  | <~[]>           // Ignora qualquer token
-  )*
 }

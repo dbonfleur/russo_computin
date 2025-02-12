@@ -108,7 +108,6 @@ public interface ComputinConstants {
     "<EXPRESSAO_INT>",
     "<EXPRESSAO_FLOAT>",
     "<EXPRESSAO_STRING>",
-    "<token of kind 34>",
   };
 
 }

@@ -63,33 +63,41 @@ public class Computin implements ComputinConstants {
 }
 
   final public void declaracao() throws ParseException {
-    switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
-    case TIPOINT:
-    case TIPOFLOAT:
-    case TIPOSTRING:{
-      declaraVariavel();
-      break;
+    try {
+      switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+      case TIPOINT:
+      case TIPOFLOAT:
+      case TIPOSTRING:{
+        declaraVariavel();
+        break;
+        }
+      case IF:{
+        testeCondicao();
+        break;
+        }
+      case WHILE:{
+        lacoWhile();
+        break;
+        }
+      case FOR:{
+        lacoFor();
+        break;
+        }
+      case ID:{
+        atribuicao();
+        break;
+        }
+      default:
+        jj_la1[1] = jj_gen;
+        jj_consume_token(-1);
+        throw new ParseException();
       }
-    case IF:{
-      testeCondicao();
-      break;
-      }
-    case WHILE:{
-      lacoWhile();
-      break;
-      }
-    case FOR:{
-      lacoFor();
-      break;
-      }
-    case ID:{
-      atribuicao();
-      break;
-      }
-    default:
-      jj_la1[1] = jj_gen;
-      jj_consume_token(-1);
-      throw new ParseException();
+    } catch (ParseException e) {
+System.out.println(e.currentToken);
+                Token t;
+                do {
+                  t = getNextToken();
+                } while (t.kind != PONTOVIRGULA);
     }
 }
 
@@ -485,57 +493,6 @@ public class Computin implements ComputinConstants {
     jj_consume_token(FECHACHAVE);
 }
 
-// Método de sincronização do pânico
-  final public void panicMode() throws ParseException {
-    label_9:
-    while (true) {
-      switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
-      case PONTOVIRGULA:
-      case ABREPAREN:
-      case FECHAPAREN:
-      case ABRECHAVE:
-      case FECHACHAVE:
-      case 34:{
-        ;
-        break;
-        }
-      default:
-        jj_la1[23] = jj_gen;
-        break label_9;
-      }
-      switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
-      case PONTOVIRGULA:{
-        jj_consume_token(PONTOVIRGULA);
-        break;
-        }
-      case ABRECHAVE:{
-        jj_consume_token(ABRECHAVE);
-        break;
-        }
-      case FECHACHAVE:{
-        jj_consume_token(FECHACHAVE);
-        break;
-        }
-      case ABREPAREN:{
-        jj_consume_token(ABREPAREN);
-        break;
-        }
-      case FECHAPAREN:{
-        jj_consume_token(FECHAPAREN);
-        break;
-        }
-      case 34:{
-        jj_consume_token(34);
-        break;
-        }
-      default:
-        jj_la1[24] = jj_gen;
-        jj_consume_token(-1);
-        throw new ParseException();
-      }
-    }
-}
-
   /** Generated Token Manager. */
   public ComputinTokenManager token_source;
   SimpleCharStream jj_input_stream;
@@ -545,7 +502,7 @@ public class Computin implements ComputinConstants {
   public Token jj_nt;
   private int jj_ntk;
   private int jj_gen;
-  final private int[] jj_la1 = new int[25];
+  final private int[] jj_la1 = new int[23];
   static private int[] jj_la1_0;
   static private int[] jj_la1_1;
   static {
@@ -553,10 +510,10 @@ public class Computin implements ComputinConstants {
 	   jj_la1_init_1();
 	}
 	private static void jj_la1_init_0() {
-	   jj_la1_0 = new int[] {0x40001bc0,0x40001bc0,0x20000,0x2000000,0x20000,0x1c0,0x20000,0x20000,0x9c0000,0x600000,0x600000,0xc0000000,0x1e000,0x1e000,0xc0000000,0x40001bc0,0x40001bc0,0x400,0x40001bc0,0x22000,0x24000,0x6000,0x40001bc0,0x3d000000,0x3d000000,};
+	   jj_la1_0 = new int[] {0x40001bc0,0x40001bc0,0x20000,0x2000000,0x20000,0x1c0,0x20000,0x20000,0x9c0000,0x600000,0x600000,0xc0000000,0x1e000,0x1e000,0xc0000000,0x40001bc0,0x40001bc0,0x400,0x40001bc0,0x22000,0x24000,0x6000,0x40001bc0,};
 	}
 	private static void jj_la1_init_1() {
-	   jj_la1_1 = new int[] {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x3,0x0,0x0,0x3,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x4,0x4,};
+	   jj_la1_1 = new int[] {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x3,0x0,0x0,0x3,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,};
 	}
 
   /** Constructor with InputStream. */
@@ -570,7 +527,7 @@ public class Computin implements ComputinConstants {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 25; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -584,7 +541,7 @@ public class Computin implements ComputinConstants {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 25; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
   }
 
   /** Constructor. */
@@ -594,7 +551,7 @@ public class Computin implements ComputinConstants {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 25; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -612,7 +569,7 @@ public class Computin implements ComputinConstants {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 25; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
   }
 
   /** Constructor with generated Token Manager. */
@@ -621,7 +578,7 @@ public class Computin implements ComputinConstants {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 25; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -630,7 +587,7 @@ public class Computin implements ComputinConstants {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 25; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
   }
 
   private Token jj_consume_token(int kind) throws ParseException {
@@ -681,12 +638,12 @@ public class Computin implements ComputinConstants {
   /** Generate ParseException. */
   public ParseException generateParseException() {
 	 jj_expentries.clear();
-	 boolean[] la1tokens = new boolean[35];
+	 boolean[] la1tokens = new boolean[34];
 	 if (jj_kind >= 0) {
 	   la1tokens[jj_kind] = true;
 	   jj_kind = -1;
 	 }
-	 for (int i = 0; i < 25; i++) {
+	 for (int i = 0; i < 23; i++) {
 	   if (jj_la1[i] == jj_gen) {
 		 for (int j = 0; j < 32; j++) {
 		   if ((jj_la1_0[i] & (1<<j)) != 0) {
@@ -698,7 +655,7 @@ public class Computin implements ComputinConstants {
 		 }
 	   }
 	 }
-	 for (int i = 0; i < 35; i++) {
+	 for (int i = 0; i < 34; i++) {
 	   if (la1tokens[i]) {
 		 jj_expentry = new int[1];
 		 jj_expentry[0] = i;
@@ -833,20 +790,17 @@ class ComputinGUI extends JFrame {
   }
 
   private void analyzeCode() {
-    clearErrors();
+        clearErrors();
     try {
-      Computin parser = new Computin(new StringReader(""));
-      parser.ReInit(new StringReader(codeArea.getText()));
+      Computin parser = new Computin(new StringReader(codeArea.getText()));
       parser.start();
-      outputArea.setText("Comunismo gostou disto camarada!\nFoices em linha: " + getLineCount() +
-                        "\nNumero de Martelos: " + getTokenCount());
-    } catch (ParseException ex) {
-      outputArea.setText("Erro de an\u00e1lise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
-
-      highlightError(ex.currentToken);
-    } catch (Exception ex) {
+      outputArea.setText("Comunismo gostou disto camarada!");
+        } catch (ParseException ex) {
+      //outputArea.setText("Erro de análise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
+      //highlightError(ex.currentToken);
+    }/* catch (Exception ex) {
       outputArea.setText("Erro inesperado:\n" + ex.getMessage());
-    }
+    }*/
   }
 
   private void highlightError(Token tokenErrado) {
