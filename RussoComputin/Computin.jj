@@ -18,9 +18,60 @@ import java.awt.event.ActionListener;
 import java.io.StringReader;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
 
-public class Computin
-{
+
+public class Computin {
+
+    private List<Token> errorTokens = new ArrayList<>();
+    private List<int[][]> expectedTokenSequencesVal = new ArrayList<>();
+    private List<String[]> tokenImageVal = new ArrayList<>();
+    private boolean errorHapenned = false;
+
+    // Getter para errorTokens
+    public List<Token> getErrorTokens() {
+        return errorTokens;
+    }
+
+    // Setter para errorTokens
+    public void setErrorTokens(List<Token> errorTokens) {
+        this.errorTokens.addAll(errorTokens); // Adiciona aos tokens de erro
+    }
+
+    // Getter para errorHapenned
+    public boolean isErrorHapenned() {
+        return errorHapenned;
+    }
+
+    // Setter para errorHapenned
+    public void setErrorHapenned(boolean errorHapenned) {
+        this.errorHapenned = errorHapenned;
+    }
+
+    // Getter para expectedTokenSequencesVal
+    public List<int[][]> getExpectedTokenSequencesVal() {
+        return expectedTokenSequencesVal;
+    }
+
+    // Setter para expectedTokenSequencesVal
+    public void addExpectedTokenSequences(List<int[][]> expectedTokenSequences) {
+        this.expectedTokenSequencesVal.addAll(expectedTokenSequences);
+    }
+
+    // Getter para tokenImageVal
+    public List<String[]> getTokenImageVal() {
+        return tokenImageVal;
+    }
+
+    // Setter para tokenImageVal
+    public void addTokenImage(List<String[]> tokenImage) {
+        this.tokenImageVal.addAll(tokenImage);
+    }
+    
   public static void main(String[] args) throws ParseException, IOException {
     if (args.length == 0) {
       SwingUtilities.invokeLater(new Runnable() {
@@ -41,6 +92,7 @@ public class Computin
     }
   }
 }
+
 
 class ComputinGUI extends JFrame {
   private JTextPane codeArea;
@@ -145,21 +197,49 @@ class ComputinGUI extends JFrame {
     }
   }
 
-  private void analyzeCode() {
+  public void analyzeCode() {
 	clearErrors();
+    Computin parser = new Computin(new StringReader(codeArea.getText()));
     try {
-      Computin parser = new Computin(new StringReader(codeArea.getText()));
       parser.start();
-      outputArea.setText("Comunismo gostou disto camarada!");
   	} catch (ParseException ex) {
-      //outputArea.setText("Erro de análise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
-      //highlightError(ex.currentToken);
-    }/* catch (Exception ex) {
-      outputArea.setText("Erro inesperado:\n" + ex.getMessage());
-    }*/
+        //  	    System.out.println("Erro no token NO CATCH: " + ex.currentToken);
+  	    // Lançar aqui pra cima uma lista de exception uma só vez
+		// Entao o do while vai pegando os erros e vai jogando pra essa lista
+		// so que so dispara uma vez, e aqui no catch pega
+		//outputArea.setText("Erro de análise comunista: " + geraMensagemErro(ex.currentToken, ex.expectedTokenSequences, ex.tokenImage));
+		//highlightError(ex.currentToken);
+//    } catch (ParserErrorException ex) {
+//    	for (Token token : ex.getErrorTokens()) {
+//    	    System.out.println("Erro durante a declaração:" + token.image);
+//        	highlightError(token);
+//    	}
+//    }
+	}
+	if (parser.isErrorHapenned()) {
+    StringBuilder str = new StringBuilder();
+    str.append("Erro de análise comunista\n");
+
+    // Iterando pelos tokens de erro
+    for (int i = 0; i < parser.getErrorTokens().size(); i++) {
+        Token token = parser.getErrorTokens().get(i);
+        // Adicionando expectedTokenSequences e tokenImage para esse token
+        int[][] expectedTokens = parser.getExpectedTokenSequencesVal().get(i); // Array 2D de expected tokens
+        String[] tokenImages = parser.getTokenImageVal().get(i); // Array de imagens de tokens
+
+        
+		highlightError(token);
+        str.append(geraMensagemErro(token, expectedTokens, tokenImages));
+    }
+
+    // Definindo o texto da área de saída
+    outputArea.setText(str.toString());
+} else {
+    outputArea.setText("Comunismo gostou disto camarada!");
+}
   }
 
-  private void highlightError(Token tokenErrado) {
+  public void highlightError(Token tokenErrado) {
 	    try {
 	        // Obter posição absoluta no documento
 	        int linha = tokenErrado.beginLine - 1;
@@ -358,22 +438,51 @@ void start() :
 }
 
 void declaracao() :
-{}
+{ }
 {
-  	try { 
-		  declaraVariavel()
-		| testeCondicao()
-		| lacoWhile()
-		| lacoFor()
-		| atribuicao()
-	} catch(ParseException e) {
-		System.out.println(e.currentToken);
-		Token t;
-		do {
-		  t = getNextToken();
-		} while (t.kind != PONTOVIRGULA);
-	}
+    try {
+        declaraVariavel()
+        | testeCondicao()
+        | lacoWhile()
+        | lacoFor()
+        | atribuicao()
+    } catch (ParseException e) {
+        List<Token> errorTokens = new ArrayList<>();
+        List<int[][]> expectedTokenSequences = new ArrayList<>();
+		List<String[]> tokenImages = new ArrayList<>();
+		
+        errorTokens.add(e.currentToken);
+        expectedTokenSequences.add(e.expectedTokenSequences);
+        tokenImages.add(e.tokenImage);
+
+        Token t = e.currentToken;
+
+        // Definindo o conjunto de tokens válidos para seguir após um erro (follow)
+        Set<Integer> followSet = new HashSet<>(Arrays.asList(
+            PONTOVIRGULA, VIRGULA, FECHAPAREN, FECHACHAVE, // Tokens de fechamento
+            MAIN, TIPOINT, TIPOFLOAT, TIPOSTRING, IF, ELSE, WHILE, FOR, // Palavras reservadas
+            MAIS, MENOS, MULT, DIVIS, IGUAL, NOT, MAIOR, MENOR, AND, OR, // Operadores
+            ID // Identificadores
+        ));
+
+        // Ignora tokens do tipo SKIP (espaços, tabulações, quebras de linha)
+        while (t.kind == ' ' || t.kind == '\t' || t.kind == '\n' || t.kind == '\r') {
+            t = getNextToken();
+        }
+
+        // Avança até encontrar um token válido do follow set
+        do {
+            t = getNextToken(); 
+        } while (!followSet.contains(t.kind));
+        setErrorHapenned(true);
+        setErrorTokens(errorTokens);
+        addExpectedTokenSequences(expectedTokenSequences);
+        addTokenImage(tokenImages);
+    }
 }
+
+
+
 
 void declaraVariavel() :
 {}
