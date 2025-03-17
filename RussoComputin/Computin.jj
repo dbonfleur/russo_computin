@@ -474,45 +474,11 @@ void start() :
 void declaracao() :
 { }
 {
-    //try {
-        declaraVariavel()
-        | testeCondicao()
-        | lacoWhile()
-        | lacoFor()
-        | atribuicao()
-    /*} catch (ParseException e) {
-        List<Token> errorTokens = new ArrayList<>();
-        List<int[][]> expectedTokenSequences = new ArrayList<>();
-		List<String[]> tokenImages = new ArrayList<>();
-		
-        errorTokens.add(e.currentToken);
-        expectedTokenSequences.add(e.expectedTokenSequences);
-        tokenImages.add(e.tokenImage);
-
-        Token t = e.currentToken;
-
-        // Definindo o conjunto de tokens válidos para seguir após um erro (follow)
-        Set<Integer> followSet = new HashSet<>(Arrays.asList(
-            PONTOVIRGULA, VIRGULA, FECHAPAREN, FECHACHAVE, ABREPAREN, ABRECHAVE, // Tokens de fechamento
-            MAIN, TIPOINT, TIPOFLOAT, TIPOSTRING, IF, ELSE, WHILE, FOR, // Palavras reservadas
-            MAIS, MENOS, MULT, DIVIS, NOT, MAIOR, MENOR, AND, OR, EQ, // Operadores
-            ID // Identificadores
-        ));
-
-        // Ignora tokens do tipo SKIP (espaços, tabulações, quebras de linha)
-        while (t.kind == ' ' || t.kind == '\t' || t.kind == '\n' || t.kind == '\r') {
-            t = getNextToken();
-        }
-
-        // Avança até encontrar um token válido do follow set
-        do {
-            t = getNextToken(); 
-        } while (!followSet.contains(t.kind));
-        setErrorHapenned(true);
-        setErrorTokens(errorTokens);
-        addExpectedTokenSequences(expectedTokenSequences);
-        addTokenImage(tokenImages);
-    }*/
+    declaraVariavel()
+    | testeCondicao()
+    | lacoWhile()
+    | lacoFor()
+    | atribuicao()
 }
 
 void declaraVariavel() :
