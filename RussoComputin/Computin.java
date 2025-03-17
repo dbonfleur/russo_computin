@@ -109,42 +109,9 @@ public class Computin implements ComputinConstants {
         jj_la1[0] = jj_gen;
         break label_1;
       }
-      declaracao();
-    }
-    jj_consume_token(FECHACHAVE);
-}
-
-  final public void declaracao() throws ParseException {
-    try {
-      switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
-      case TIPOINT:
-      case TIPOFLOAT:
-      case TIPOSTRING:{
-        declaraVariavel();
-        break;
-        }
-      case IF:{
-        testeCondicao();
-        break;
-        }
-      case WHILE:{
-        lacoWhile();
-        break;
-        }
-      case FOR:{
-        lacoFor();
-        break;
-        }
-      case ID:{
-        atribuicao();
-        break;
-        }
-      default:
-        jj_la1[1] = jj_gen;
-        jj_consume_token(-1);
-        throw new ParseException();
-      }
-    } catch (ParseException e) {
+      try {
+        declaracao();
+      } catch (ParseException e) {
 List<Token> errorTokens = new ArrayList<>();
         List<int[][]> expectedTokenSequences = new ArrayList<>();
                 List<String[]> tokenImages = new ArrayList<>();
@@ -157,16 +124,16 @@ List<Token> errorTokens = new ArrayList<>();
 
         // Definindo o conjunto de tokens válidos para seguir após um erro (follow)
         Set<Integer> followSet = new HashSet<>(Arrays.asList(
-            PONTOVIRGULA, VIRGULA, FECHAPAREN, FECHACHAVE, // Tokens de fechamento
+            PONTOVIRGULA, VIRGULA, FECHAPAREN, FECHACHAVE, ABREPAREN, ABRECHAVE, // Tokens de fechamento
             MAIN, TIPOINT, TIPOFLOAT, TIPOSTRING, IF, ELSE, WHILE, FOR, // Palavras reservadas
-            MAIS, MENOS, MULT, DIVIS, IGUAL, NOT, MAIOR, MENOR, AND, OR, // Operadores
+            MAIS, MENOS, MULT, DIVIS, NOT, MAIOR, MENOR, AND, OR, EQ, // Operadores
             ID // Identificadores
         ));
 
         // Ignora tokens do tipo SKIP (espaços, tabulações, quebras de linha)
-        while (t.kind == ' ' || t.kind == '\t' || t.kind == '\n' || t.kind == '\r') {
+        /*while (t.kind == ' ' || t.kind == '\t' || t.kind == '\n' || t.kind == '\r') {
             t = getNextToken();
-        }
+        }*/
 
         // Avança até encontrar um token válido do follow set
         do {
@@ -176,6 +143,39 @@ List<Token> errorTokens = new ArrayList<>();
         setErrorTokens(errorTokens);
         addExpectedTokenSequences(expectedTokenSequences);
         addTokenImage(tokenImages);
+      }
+    }
+    jj_consume_token(FECHACHAVE);
+}
+
+  final public void declaracao() throws ParseException {
+    switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+    case TIPOINT:
+    case TIPOFLOAT:
+    case TIPOSTRING:{
+      declaraVariavel();
+      break;
+      }
+    case IF:{
+      testeCondicao();
+      break;
+      }
+    case WHILE:{
+      lacoWhile();
+      break;
+      }
+    case FOR:{
+      lacoFor();
+      break;
+      }
+    case ID:{
+      atribuicao();
+      break;
+      }
+    default:
+      jj_la1[1] = jj_gen;
+      jj_consume_token(-1);
+      throw new ParseException();
     }
 }
 
